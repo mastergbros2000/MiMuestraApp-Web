@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>MiMuestraApp | Guía Digital para Pacientes</title>
+  <meta name="theme-color" content="#0d6e6e">
+  <link rel="manifest" href="manifest.json">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=5">
+</head>
+<body>
+
+  <div class="app-shell">
+    <!-- HEADER GLOBAL RESPONSIVO -->
+    <header class="top-navbar">
+      <div class="navbar-inner">
+        <div class="brand-area" onclick="navigateTo('inicio')">
+          <img src="assets/img/logo.png" alt="MiMuestraApp - Guía Digital para Pacientes" class="brand-logo">
+        </div>
+
+        <!-- NAVEGACIÓN ESCRITORIO / TABLET GRANDE -->
+        <nav class="desktop-nav" aria-label="Navegación principal">
+          <button class="nav-link-btn active" data-route="inicio" onclick="navigateTo('inicio')">
+            <i class="bi bi-house-door-fill"></i> Inicio
+          </button>
+          <button class="nav-link-btn" data-route="catalogo" onclick="navigateTo('catalogo')">
+            <i class="bi bi-grid-fill"></i> Catálogo (7)
+          </button>
+        </nav>
+
+        <!-- CONTROLES DE ACCESIBILIDAD -->
+        <div class="a11y-controls" role="group" aria-label="Tamaño de letra">
+          <button class="btn-a11y" onclick="changeFontSize(-1)" title="Reducir texto">A-</button>
+          <span id="fontScaleLabel" class="font-scale-badge" aria-live="polite">100%</span>
+          <button class="btn-a11y" onclick="changeFontSize(1)" title="Aumentar texto">A+</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==========================================
+         VISTA 1: INICIO (ORIENTACIÓN Y ACCESO RÁPIDO)
+         ========================================== -->
+    <main id="inicioView" class="view-container">
+      <!-- HERO RESPONSIVO (2 COLUMNAS EN PC, 1 EN MÓVIL) -->
+      <section class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-pill"><i class="bi bi-heart-pulse me-1"></i> Preparación de Exámenes</span>
+          <h1>Prepara tu muestra sin errores ni rechazos</h1>
+          <p>Consulta requisitos, tiempos de traslado y pasos exactos ingresando el nombre o el <strong>código IP</strong> de tu orden médica.</p>
+          
+          <form class="search-box" onsubmit="handleHomeSearch(event)">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" id="homeSearchInput" placeholder="Buscar examen o código (ej: IP-024, urocultivo)..." autocomplete="off">
+            <button type="submit" class="btn-search-go">Buscar</button>
+          </form>
+
+          <div class="hero-quick-actions">
+            <button class="quick-cat-card orina" onclick="goToCatalogWithFilter('orina')">
+              <div class="qcat-icon"><i class="bi bi-droplet-fill"></i></div>
+              <div class="qcat-text">
+                <strong>Exámenes de Orina</strong>
+                <span>3 guías disponibles</span>
+              </div>
+              <i class="bi bi-arrow-right"></i>
+            </button>
+
+            <button class="quick-cat-card deposiciones" onclick="goToCatalogWithFilter('deposiciones')">
+              <div class="qcat-icon"><i class="bi bi-clipboard2-pulse"></i></div>
+              <div class="qcat-text">
+                <strong>Deposiciones</strong>
+                <span>4 guías disponibles</span>
+              </div>
+              <i class="bi bi-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- TARJETA LATERAL DE RESUMEN RÁPIDO (VISIBLE EN TABLET/PC) -->
+        <aside class="hero-aside">
+          <div class="aside-card">
+            <h3><i class="bi bi-clock-history text-teal me-2"></i>Tiempos clave de entrega</h3>
+            <ul class="time-summary-list">
+              <li><span class="badge-time warn">&lt; 1 hr</span> <strong>Orina completa:</strong> refrigerada.</li>
+              <li><span class="badge-time warn">&lt; 2 hrs</span> <strong>Urocultivo:</strong> en bolsa con hielo.</li>
+              <li><span class="badge-time info">Mismo día</span> <strong>Coprocultivo:</strong> refrigerada.</li>
+              <li><span class="badge-time neutral">T° Amb.</span> <strong>Parasitológico y Graham.</strong></li>
+            </ul>
+            <button class="btn-outline-full mt-2" onclick="navigateTo('catalogo')">
+              Ver catálogo completo <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+        </aside>
+      </section>
+
+      <!-- EXÁMENES MÁS FRECUENTES -->
+      <section class="home-section">
+        <div class="section-header">
+          <div>
+            <h2>Exámenes más consultados</h2>
+            <p class="section-sub">Acceso directo a las preparaciones habituales</p>
+          </div>
+          <button class="link-action" onclick="navigateTo('catalogo')">Ver todos (7) <i class="bi bi-chevron-right"></i></button>
+        </div>
+        <div id="featuredExamsGrid" class="cards-responsive-grid"></div>
+      </section>
+
+      <!-- REGLAS GENERALES / PREGUNTAS FRECUENTES -->
+      <section class="home-section">
+        <div class="section-header">
+          <div>
+            <h2><i class="bi bi-info-circle-fill text-teal me-2"></i>Antes de tomar tu muestra</h2>
+            <p class="section-sub">Recomendaciones generales para evitar repetir el examen</p>
+          </div>
+        </div>
+
+        <div class="faq-responsive-grid">
+          <div class="faq-card">
+            <div class="faq-icon"><i class="bi bi-capsule"></i></div>
+            <h3>Uso de antibióticos</h3>
+            <p>Para <strong>Urocultivo</strong>, <strong>Coprocultivo</strong> y <strong>Parasitológico</strong>, se sugiere no estar en terapia con antibióticos ni antiparasitarios. Consulta con tu médico antes de recolectar.</p>
+          </div>
+          <div class="faq-card">
+            <div class="faq-icon"><i class="bi bi-box-seam"></i></div>
+            <h3>Retiro de frascos</h3>
+            <p>Los frascos estériles, tubos con gel, tarjetas reactivas y cajas con láminas de vidrio se entregan sin costo en la <strong>Unidad de Toma de Muestras</strong> presentando tu orden.</p>
+          </div>
+          <div class="faq-card">
+            <div class="faq-icon"><i class="bi bi-tag"></i></div>
+            <h3>Rotulado e higiene</h3>
+            <p>Lava bien tus manos antes y después del procedimiento. Verifica que el frasco quede herméticamente cerrado y rotulado con tu nombre completo y RUT.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ==========================================
+         VISTA 2: CATÁLOGO COMPLETO (FILTROS + GRILLA)
+         ========================================== -->
+    <section id="catalogoView" class="view-container d-none">
+      <div class="catalog-header-bar">
+        <div>
+          <h1>Catálogo de Exámenes</h1>
+          <p>Explora y filtra todas las guías disponibles por tipo de muestra o código IP.</p>
+        </div>
+        <div class="catalog-sort">
+          <label for="sortSelect" class="visually-hidden">Ordenar por</label>
+          <select id="sortSelect" class="form-select form-select-sm" onchange="renderCatalog()">
+            <option value="default">Orden habitual</option>
+            <option value="az">Nombre (A - Z)</option>
+            <option value="code">Código IP</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- BARRA DE BÚSQUEDA Y FILTROS DEL CATÁLOGO -->
+      <div class="catalog-controls-box">
+        <div class="search-box mb-0">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" id="catalogSearchInput" placeholder="Filtrar por nombre, código IP-024, palabras clave..." autocomplete="off">
+          <button id="clearCatalogSearchBtn" class="clear-btn d-none" onclick="clearCatalogSearch()" aria-label="Limpiar búsqueda">
+            <i class="bi bi-x-circle-fill"></i>
+          </button>
+        </div>
+
+        <div class="filter-bar-row">
+          <div class="filter-pills" id="filterPills">
+            <button class="pill-btn active" data-filter="all">Todos (7)</button>
+            <button class="pill-btn" data-filter="orina"><i class="bi bi-droplet-fill me-1"></i>Orina (3)</button>
+            <button class="pill-btn" data-filter="deposiciones"><i class="bi bi-clipboard2-pulse me-1"></i>Deposiciones (4)</button>
+          </div>
+          <span id="resultsCount" class="count-badge">Mostrando 7 exámenes</span>
+        </div>
+      </div>
+
+      <!-- GRILLA RESPONSIVA DE EXÁMENES -->
+      <div id="catalogGrid" class="cards-responsive-grid"></div>
+
+      <div id="emptyState" class="empty-state d-none">
+        <i class="bi bi-search"></i>
+        <p>No encontramos exámenes que coincidan con tu búsqueda.</p>
+        <button class="btn-outline-full" style="max-width: 220px; margin: 0 auto;" onclick="clearCatalogSearch()">Mostrar todos</button>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         VISTA 3: DETALLE DEL EXAMEN
+         ========================================== -->
+    <section id="detailView" class="view-container d-none">
+      <!-- BARRA STICKY SUPERIOR -->
+      <div class="sticky-detail-header">
+        <button class="btn-back" onclick="goBackFromDetail()">
+          <i class="bi bi-arrow-left"></i> Volver
+        </button>
+        <span id="stickyTitle" class="sticky-exam-name">Examen</span>
+        <button id="ttsBtn" class="btn-tts-mini" onclick="toggleSpeech()" title="Escuchar instrucciones">
+          <i class="bi bi-volume-up-fill"></i> <span id="ttsBtnText">Escuchar</span>
+        </button>
+      </div>
+
+      <!-- CABECERA DEL EXAMEN -->
+      <div id="examHeroBanner" class="detail-banner">
+        <div class="detail-banner-top">
+          <span id="detailCode" class="code-pill">IP-000</span>
+          <span id="detailCategory" class="cat-pill">Categoría</span>
+        </div>
+        <h1 id="detailTitle">Nombre del Examen</h1>
+        <p id="detailSubtitle" class="detail-subtitle"></p>
+      </div>
+
+      <!-- PESTAÑAS INTERNAS -->
+      <div class="detail-tabs" role="tablist">
+        <button class="tab-btn active" data-tab="tab-req" onclick="switchTab('tab-req')">
+          <i class="bi bi-list-check"></i> Requisitos
+        </button>
+        <button class="tab-btn" data-tab="tab-steps" onclick="switchTab('tab-steps')">
+          <i class="bi bi-123"></i> Paso a paso
+        </button>
+        <button class="tab-btn" data-tab="tab-media" onclick="switchTab('tab-media')">
+          <i class="bi bi-play-btn"></i> Guía visual
+        </button>
+      </div>
+
+      <!-- CONTENIDO DE PESTAÑAS -->
+      <div id="detailContent" class="detail-body"></div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <p><strong>MiMuestraApp</strong> · Guía Digital para Pacientes</p>
+      <small>Diseño responsivo adaptable a celular, tablet y escritorio.</small>
+    </footer>
+
+    <!-- BARRA INFERIOR MÓVIL / TABLET CHICA -->
+    <nav class="mobile-bottom-nav" aria-label="Navegación móvil">
+      <button class="bottom-nav-btn active" data-route="inicio" onclick="navigateTo('inicio')">
+        <i class="bi bi-house-door-fill"></i>
+        <span>Inicio</span>
+      </button>
+      <button class="bottom-nav-btn" data-route="catalogo" onclick="navigateTo('catalogo')">
+        <i class="bi bi-grid-fill"></i>
+        <span>Catálogo</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- MODAL LIGHTBOX PARA INFOGRAFÍAS -->
+  <dialog id="lightboxModal" class="lightbox-overlay" aria-labelledby="lightboxCaption">
+    <div class="lightbox-toolbar">
+      <p id="lightboxCaption" class="lightbox-caption"></p>
+      <button type="button" id="lightboxZoom" class="lightbox-zoom" aria-controls="lightboxViewport">Acercar</button>
+      <form method="dialog">
+        <button class="lightbox-close" aria-label="Cerrar imagen ampliada" autofocus><span aria-hidden="true">×</span></button>
+      </form>
+    </div>
+    <div id="lightboxViewport" class="lightbox-viewport" role="region" aria-label="Vista de la imagen" tabindex="-1">
+      <img id="lightboxImg" alt="">
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/app.js?v=5"></script>
+</body>
+</html>
