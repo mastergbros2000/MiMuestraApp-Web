@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mimuestra-v6';
+const CACHE_NAME = 'mimuestra-v10';
 const PAGES = ['./', './index.html'].map(path => new URL(path, self.registration.scope).href);
 const ASSETS = [
   './css/styles.css?v=5',

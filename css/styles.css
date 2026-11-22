@@ -68,15 +68,37 @@ body {
 .brand-area {
   display: flex;
   align-items: center;
-  gap: 10px;
   cursor: pointer;
 }
 
 .brand-logo {
-  height: 50px;
+  height: 62px;
   width: auto;
+  max-width: 100%;
   object-fit: contain;
   display: block;
+}
+
+@media (max-width: 479px) {
+  .navbar-inner {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .brand-area {
+    flex: 1 1 180px;
+    min-width: 180px;
+  }
+
+  .brand-logo {
+    height: 52px;
+    width: auto;
+  }
+
+  .a11y-controls {
+    flex-shrink: 0;
+    margin-inline-start: auto;
+  }
 }
 
 /* Navegación superior (oculta en móvil, visible en tablet/PC >= 768px) */
@@ -353,7 +375,6 @@ body {
   white-space: nowrap;
 }
 
-.badge-time.warn { background: #fff3cd; color: #7a5600; }
 .badge-time.info { background: #e0f2fe; color: #0369a1; }
 .badge-time.neutral { background: #eef2f6; color: #475569; }
 
