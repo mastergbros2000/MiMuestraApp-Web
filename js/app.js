@@ -8,7 +8,7 @@ const EXAMS_DATA = [
     categoryLabel: "Exámenes de orina",
     icon: "bi-virus",
     featured: true,
-    keywords: ["orina", "infeccion", "bacterias", "cultivo", "ip-024", "segundo chorro"],
+    keywords: ["orina", "pipi", "flujo", "secrecion", "hongos", "infeccion", "bacterias", "cultivo", "ip-024", "segundo chorro"],
     description: "Busca determinar agentes infecciosos en su orina para que su médico tome decisiones terapéuticas apropiadas.",
     materials: [
       "1 frasco estéril para recolectar la muestra.",
@@ -63,7 +63,7 @@ const EXAMS_DATA = [
     categoryLabel: "Exámenes de orina",
     icon: "bi-droplet-fill",
     featured: true,
-    keywords: ["orina", "sedimento", "ip-021", "ip-020", "mañana"],
+    keywords: ["orina", "pipi", "sedimento", "ip-021", "ip-020", "mañana"],
     description: "Análisis general de orina y sedimento urinario para evaluar función renal y detectar alteraciones.",
     materials: [
       "1 frasco limpio y seco entregado en la Unidad de Toma de Muestras."
@@ -107,7 +107,7 @@ const EXAMS_DATA = [
     categoryLabel: "Exámenes de orina",
     icon: "bi-clock-history",
     featured: false,
-    keywords: ["24 horas", "clearance", "proteinuria", "porfirinas", "oxalato", "ip-017"],
+    keywords: ["orina", "pipi", "24 horas", "clearance", "proteinuria", "porfirinas", "oxalato", "ip-017"],
     description: "Recolecta toda la orina eliminada durante un período exacto de 24 horas para medir componentes específicos.",
     materials: [
       "Recipiente limpio y seco de boca ancha (lavado solo con agua, sin detergente).",
@@ -144,7 +144,7 @@ const EXAMS_DATA = [
     categoryLabel: "Exámenes de deposiciones",
     icon: "bi-layers",
     featured: true,
-    keywords: ["graham", "oxiuros", "cinta", "laminas", "vidrio", "parasito", "ip-034"],
+    keywords: ["caca", "heces", "deposiciones", "gusanos", "graham", "oxiuros", "cinta", "laminas", "vidrio", "parasito", "ip-034"],
     description: "Detecta la presencia del parásito intestinal Enterobius vermicularis (oxiuros) mediante láminas con cinta adhesiva.",
     materials: [
       "1 caja con 5 láminas de vidrio envueltas en papel.",
@@ -182,7 +182,7 @@ const EXAMS_DATA = [
     categoryLabel: "Exámenes de deposiciones",
     icon: "bi-eyedropper",
     featured: false,
-    keywords: ["coprocultivo", "torula", "gel", "diarrea", "bacterias", "ip-002"],
+    keywords: ["caca", "heces", "deposiciones", "coprocultivo", "torula", "gel", "diarrea", "bacterias", "ip-002"],
     description: "Cultivo de deposición para identificar bacterias causantes de infecciones gastrointestinales.",
     materials: [
       "1 envoltorio con un tubo que contiene gel.",
@@ -219,7 +219,7 @@ const EXAMS_DATA = [
     categoryLabel: "Exámenes de deposiciones",
     icon: "bi-card-checklist",
     featured: false,
-    keywords: ["sangre oculta", "guayaco", "tarjeta", "dieta", "carnes", "ip-022"],
+    keywords: ["caca", "heces", "deposiciones", "sangre oculta", "guayaco", "tarjeta", "dieta", "carnes", "ip-022"],
     description: "Detecta pequeñas cantidades de sangre oculta en las heces mediante tarjetas reactivas.",
     materials: [
       "Tarjetas reactivas entregadas en Toma de Muestras.",
@@ -259,7 +259,7 @@ const EXAMS_DATA = [
     categoryLabel: "Exámenes de deposiciones",
     icon: "bi-prescription2",
     featured: false,
-    keywords: ["parasitologico", "coproparasitologico", "parasitos", "frascos", "fijador", "ip-032"],
+    keywords: ["caca", "heces", "deposiciones", "gusanos", "oxiuros", "parasitologico", "coproparasitologico", "parasitos", "frascos", "fijador", "ip-032"],
     description: "Permite detectar la presencia de parásitos intestinales en muestras seriadas de deposición.",
     materials: [
       "Caja/set con 3 frascos que contienen líquido fijador especial.",
@@ -297,10 +297,19 @@ let previousRoute = 'inicio';
 let currentFilter = 'all';
 let currentExam = null;
 let currentProfile = 'mujer';
-let fontScale = 1;
+let fontScalePercent = 100;
 let isSpeaking = false;
+let activeAudio = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+  const splashScreen = document.getElementById('app-splash-screen');
+  if (splashScreen) {
+    window.setTimeout(() => {
+      splashScreen.classList.add('is-hiding');
+      window.setTimeout(() => splashScreen.remove(), 400);
+    }, 1600);
+  }
+
   renderFeaturedExams();
   renderCatalog();
   setupListeners();
@@ -308,8 +317,40 @@ document.addEventListener('DOMContentLoaded', () => {
   new ResizeObserver(() => {
     document.documentElement.style.setProperty('--top-navbar-height', `${navbar.offsetHeight}px`);
   }).observe(navbar);
+  registerAndroidBackButton();
   registerSW();
 });
+
+function registerAndroidBackButton() {
+  const appPlugin = window.Capacitor?.Plugins?.App;
+  if (!appPlugin || typeof appPlugin.addListener !== 'function') return;
+
+  appPlugin.addListener('backButton', () => {
+    const openDialog = document.querySelector('dialog[open]');
+    if (openDialog) {
+      openDialog.close();
+      return;
+    }
+
+    const openModal = document.querySelector('.modal.show');
+    if (openModal) {
+      window.bootstrap?.Modal.getInstance(openModal)?.hide();
+      return;
+    }
+
+    if (currentRoute === 'detail') {
+      goBackFromDetail();
+    } else if (currentRoute === 'catalogo') {
+      navigateTo('inicio');
+    } else {
+      appPlugin.exitApp().catch((error) => {
+        console.error('No se pudo cerrar la app desde el botón Atrás:', error);
+      });
+    }
+  }).catch((error) => {
+    console.error('No se pudo registrar el botón Atrás de Android:', error);
+  });
+}
 
 function registerSW() {
   if ('serviceWorker' in navigator) {
@@ -320,6 +361,7 @@ function registerSW() {
 }
 
 function setupListeners() {
+  setupHomeAccordions();
   const catInput = document.getElementById('catalogSearchInput');
   catInput.addEventListener('input', (e) => {
     const val = e.target.value;
@@ -345,6 +387,41 @@ function setupListeners() {
     if (event.target === lightbox || (event.target === viewport && !viewport.classList.contains('is-zoomed'))) {
       lightbox.close();
     }
+  });
+}
+
+const homeAccordionCloseTimers = new WeakMap();
+
+function setupHomeAccordions() {
+  document.querySelectorAll('.home-accordion > summary').forEach(summary => {
+    summary.addEventListener('click', event => {
+      event.preventDefault();
+      const accordion = summary.parentElement;
+      if (accordion.classList.contains('is-closing')) {
+        window.clearTimeout(homeAccordionCloseTimers.get(accordion));
+        homeAccordionCloseTimers.delete(accordion);
+        accordion.classList.remove('is-closing');
+        return;
+      }
+      if (!accordion.open) {
+        accordion.open = true;
+        return;
+      }
+
+      accordion.classList.add('is-closing');
+      const content = accordion.querySelector('.home-accordion-content');
+      const closeAccordion = event => {
+        if (event && (event.target !== content || event.propertyName !== 'grid-template-rows')) return;
+        if (!accordion.classList.contains('is-closing')) return;
+        window.clearTimeout(homeAccordionCloseTimers.get(accordion));
+        homeAccordionCloseTimers.delete(accordion);
+        content.removeEventListener('transitionend', closeAccordion);
+        accordion.open = false;
+        accordion.classList.remove('is-closing');
+      };
+      content.addEventListener('transitionend', closeAccordion);
+      homeAccordionCloseTimers.set(accordion, window.setTimeout(() => closeAccordion(), 350));
+    });
   });
 }
 
@@ -514,6 +591,7 @@ function goBackFromDetail() {
 }
 
 function switchTab(tabId) {
+  if (isSpeaking) stopSpeech();
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tabId);
   });
@@ -525,15 +603,15 @@ function switchTab(tabId) {
   if (tabId === 'tab-req') {
     container.innerHTML = `
       <div class="detail-grid-blocks">
-        <div class="info-block">
+        <div class="info-block" data-audio-section="consiste">
           <h3><i class="bi bi-file-medical text-teal"></i> ¿En qué consiste?</h3>
           <p class="mb-0">${currentExam.description}</p>
         </div>
-        <div class="info-block">
+        <div class="info-block" data-audio-section="materiales">
           <h3><i class="bi bi-box-seam text-teal"></i> Materiales necesarios</h3>
           <ul>${currentExam.materials.map(m => `<li>${m}</li>`).join('')}</ul>
         </div>
-        <div class="info-block highlight-warn full-span">
+        <div class="info-block highlight-warn full-span" data-audio-section="requisitos">
           <h3><i class="bi bi-exclamation-triangle-fill text-warning"></i> Requisitos previos</h3>
           <ul>${currentExam.requirements.map(r => `<li>${r}</li>`).join('')}</ul>
         </div>
@@ -544,7 +622,7 @@ function switchTab(tabId) {
     if (currentExam.hasGenderSplit) {
       const cleanList = currentExam.cleaningSteps[currentProfile];
       genderBlock = `
-        <div class="info-block">
+        <div class="info-block" data-audio-section="aseo" data-audio-profile="${currentProfile}">
           <h3><i class="bi bi-person-check text-teal"></i> Preparación / Aseo previo</h3>
           <div class="profile-selector">
             <button class="profile-btn ${currentProfile === 'mujer' ? 'active' : ''}" onclick="setProfile('mujer')">
@@ -567,7 +645,7 @@ function switchTab(tabId) {
     container.innerHTML = `
       <div class="detail-grid-blocks">
         ${genderBlock}
-        <div class="info-block ${currentExam.hasGenderSplit ? '' : 'full-span'}">
+        <div class="info-block ${currentExam.hasGenderSplit ? '' : 'full-span'}" data-audio-section="paso">
           <h3><i class="bi bi-check2-circle text-teal"></i> Procedimiento de recolección</h3>
           ${currentExam.steps.map((s, idx) => `
             <div class="step-item">
@@ -576,7 +654,7 @@ function switchTab(tabId) {
             </div>
           `).join('')}
         </div>
-        <div class="info-block full-span">
+        <div class="info-block full-span" data-audio-section="traslado">
           <h3><i class="bi bi-truck text-teal"></i> Conservación y traslado</h3>
           <ul>${currentExam.transport.map(t => `<li>${t}</li>`).join('')}</ul>
         </div>
@@ -585,6 +663,39 @@ function switchTab(tabId) {
   } else if (tabId === 'tab-media') {
     renderVisualGuide(container, currentExam);
   }
+
+  addSectionSpeechButtons(container);
+}
+
+const SPEAKER_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a3.5 3.5 0 0 0-2-3.16v6.32a3.5 3.5 0 0 0 2-3.16zM14.5 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/></svg>';
+const STOP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v12H6z"/></svg>';
+
+function addSectionSpeechButtons(container) {
+  container.querySelectorAll('.info-block[data-audio-section]').forEach(block => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'section-tts-btn';
+    button.setAttribute('aria-label', 'Escuchar sección');
+    button.innerHTML = SPEAKER_ICON;
+    const section = block.dataset.audioSection;
+    const profileSuffix = block.dataset.audioProfile ? `-${block.dataset.audioProfile}` : '';
+    block.dataset.audioFile = `assets/audio/${getExamAudioPrefix(currentExam)}-${section}${profileSuffix}.mp3`;
+    const header = document.createElement('div');
+    header.className = 'info-block-header';
+    header.append(block.querySelector('h3'), button);
+    block.insertBefore(header, block.firstChild);
+    button.addEventListener('click', () => toggleSectionSpeech(button));
+  });
+}
+
+function getExamAudioPrefix(exam) {
+  const primaryCode = exam.code.split(/[\/,]/)[0].trim() || exam.id;
+  return primaryCode
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function renderVisualGuide(container, exam) {
@@ -665,9 +776,9 @@ function setProfile(profile) {
 // ACCESIBILIDAD Y LIGHTBOX
 // ==========================================
 function changeFontSize(dir) {
-  fontScale = Math.min(1.25, Math.max(0.9, +(fontScale + dir * 0.08).toFixed(2)));
-  document.documentElement.style.setProperty('--font-scale', fontScale);
-  document.getElementById('fontScaleLabel').textContent = `${Math.round(fontScale * 100)}%`;
+  fontScalePercent = Math.min(125, Math.max(90, fontScalePercent + Math.sign(dir) * 5));
+  document.documentElement.style.setProperty('--font-scale', fontScalePercent / 100);
+  document.getElementById('fontScaleLabel').textContent = `${fontScalePercent}%`;
 }
 
 function openLightbox(src, caption) {
@@ -691,6 +802,8 @@ function setLightboxZoom(zoomed) {
 let preferredVoice = null;
 let speechQueue = [];
 let speechIndex = 0;
+let speechRequestId = 0;
+let activeSpeechButton = null;
 
 function loadNaturalVoice() {
   if (!('speechSynthesis' in window)) return;
@@ -727,43 +840,44 @@ if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = loadNaturalVoice;
 }
 
-function buildSpeechChunks() {
-  if (!currentExam) return [];
-  const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'tab-req';
-  const chunks = [];
+function limpiarTextoParaVoz(texto) {
+  return texto
+    .replace(/(\d)(?=(?:ml|cc|hrs?|min|seg)\b)/gi, '$1 ')
+    .replace(/\bestimado\/a\b/gi, 'estimado o estimada')
+    .replace(/\baprox\.\s*/gi, 'aproximadamente ')
+    .replace(/°\s*C\b/gi, ' grados Celsius')
+    .replace(/\bml\b/gi, 'mililitros')
+    .replace(/\bcc\b/gi, 'centímetros cúbicos')
+    .replace(/\bhrs\b/gi, 'horas')
+    .replace(/\bhr\b/gi, 'hora')
+    .replace(/\bmin\b/gi, 'minutos')
+    .replace(/\bseg\b/gi, 'segundos')
+    .replace(/[•*#]/g, ' ')
+    .replace(/\.{2,}/g, '.')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim();
+}
 
-  chunks.push(`${currentExam.title}. Código ${currentExam.code}.`);
+function getSectionSpeechText(button) {
+  const block = button.closest('.info-block');
+  if (!block) return '';
+  const parts = Array.from(block.querySelectorAll('h3, p, li, .step-text, figcaption'))
+    .map(element => element.textContent.trim())
+    .filter(Boolean);
+  return limpiarTextoParaVoz(parts.join('. '));
+}
 
-  if (activeTab === 'tab-req') {
-    chunks.push(currentExam.description);
-    chunks.push('Materiales necesarios:');
-    currentExam.materials.forEach(m => chunks.push(m));
-    chunks.push('Requisitos previos importantes:');
-    currentExam.requirements.forEach(r => chunks.push(r));
-  } else if (activeTab === 'tab-steps') {
-    if (currentExam.hasGenderSplit) {
-      const label = currentProfile === 'mujer' ? 'paciente femenino' : 'paciente masculino';
-      chunks.push(`Preparación y aseo previo para ${label}:`);
-      currentExam.cleaningSteps[currentProfile].forEach((s, i) => {
-        chunks.push(`Paso ${i + 1}: ${s}`);
-      });
-    }
-    chunks.push('Procedimiento de recolección:');
-    currentExam.steps.forEach((s, i) => {
-      chunks.push(`Paso ${i + 1}: ${s}`);
-    });
-    chunks.push('Conservación y traslado:');
-    currentExam.transport.forEach(t => chunks.push(t));
-  } else {
-    chunks.push('Estás en la sección de guía visual. Toca la infografía para ampliarla o reproduce el video explicativo.');
-  }
-
-  return chunks;
+function updateSectionSpeechButton(button, speaking) {
+  if (!button) return;
+  button.classList.toggle('speaking', speaking);
+  button.setAttribute('aria-label', speaking ? 'Detener lectura' : 'Escuchar sección');
+  button.innerHTML = speaking ? STOP_ICON : SPEAKER_ICON;
 }
 
 function speakNextChunk() {
   if (!isSpeaking || speechIndex >= speechQueue.length) {
-    stopSpeech();
+    finishSpeech();
     return;
   }
 
@@ -775,7 +889,7 @@ function speakNextChunk() {
     utterance.lang = 'es-CL';
   }
 
-  utterance.rate = 1.03;
+  utterance.rate = 0.96;
   utterance.pitch = 1.02;
 
   utterance.onend = () => {
@@ -789,41 +903,137 @@ function speakNextChunk() {
   window.speechSynthesis.speak(utterance);
 }
 
-function toggleSpeech() {
-  if (!('speechSynthesis' in window)) {
-    alert('Tu navegador no soporta lectura en voz alta.');
-    return;
-  }
-  if (isSpeaking) {
+function toggleSectionSpeech(button) {
+  if (isSpeaking && activeSpeechButton === button) {
     stopSpeech();
     return;
   }
-  if (!currentExam) return;
+  stopSpeech();
 
-  loadNaturalVoice();
-  window.speechSynthesis.cancel();
+  const text = getSectionSpeechText(button);
+  if (!text) return;
 
-  speechQueue = buildSpeechChunks();
-  speechIndex = 0;
+  const requestId = ++speechRequestId;
   isSpeaking = true;
+  activeSpeechButton = button;
+  updateSectionSpeechButton(button, true);
 
-  const btn = document.getElementById('ttsBtn');
-  btn.classList.add('speaking');
-  document.getElementById('ttsBtnText').textContent = 'Detener';
+  const audioFile = button.closest('.info-block').dataset.audioFile;
+  playSectionAudio(audioFile, text, requestId);
+}
 
+function playSectionAudio(audioFile, text, requestId) {
+  const audio = new Audio(audioFile);
+  activeAudio = audio;
+  let fallbackStarted = false;
+  const useSpeechFallback = () => {
+    if (fallbackStarted || !isSpeaking || requestId !== speechRequestId) return;
+    fallbackStarted = true;
+    audio.onerror = null;
+    audio.onended = null;
+    audio.pause();
+    activeAudio = null;
+    speakSectionFallback(text, requestId);
+  };
+
+  audio.onended = () => {
+    if (isSpeaking && requestId === speechRequestId) finishSpeech();
+  };
+  audio.onerror = useSpeechFallback;
+  const playback = audio.play();
+  if (playback && typeof playback.catch === 'function') {
+    playback.catch(useSpeechFallback);
+  }
+}
+
+function speakSectionFallback(text, requestId) {
+  if (!isSpeaking || requestId !== speechRequestId) return;
+  const nativeTTS = window.Capacitor?.Plugins?.TextToSpeech;
+  if (nativeTTS && typeof nativeTTS.speak === 'function') {
+    speakWithNativeTTS(nativeTTS, text, requestId);
+    return;
+  }
+
+  if (isRunningInCapacitor()) {
+    finishSpeech();
+    alert('No está disponible la lectura en voz alta nativa en este dispositivo.');
+    return;
+  }
+  if (!('speechSynthesis' in window)) {
+    finishSpeech();
+    alert('Tu navegador no soporta lectura en voz alta.');
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  speechQueue = [text];
+  speechIndex = 0;
   speakNextChunk();
 }
 
-function stopSpeech() {
+async function speakWithNativeTTS(nativeTTS, text, requestId) {
+  try {
+    if (!isSpeaking || requestId !== speechRequestId) return;
+    await nativeTTS.speak({ text, rate: 0.96, pitch: 1.02, volume: 1.0 });
+    if (isSpeaking && requestId === speechRequestId) finishSpeech();
+  } catch (error) {
+    if (requestId !== speechRequestId) return;
+    finishSpeech();
+    console.error('No se pudo iniciar la lectura en voz alta nativa:', error);
+    alert('No se pudo iniciar la lectura en voz alta. Verifica que haya una voz sin conexión instalada.');
+  }
+}
+
+function isRunningInCapacitor() {
+  const capacitor = window.Capacitor;
+  if (!capacitor) return false;
+  if (typeof capacitor.isNativePlatform === 'function') return capacitor.isNativePlatform();
+  if (typeof capacitor.getPlatform === 'function') return capacitor.getPlatform() !== 'web';
+  return true;
+}
+
+function resetSectionSpeechButtons() {
+  document.querySelectorAll('.section-tts-btn').forEach(button => {
+    updateSectionSpeechButton(button, false);
+  });
+}
+
+function finishSpeech() {
+  if (activeAudio) {
+    activeAudio.onended = null;
+    activeAudio.onerror = null;
+    activeAudio.pause();
+    activeAudio = null;
+  }
   isSpeaking = false;
   speechQueue = [];
   speechIndex = 0;
+  activeSpeechButton = null;
+  resetSectionSpeechButtons();
+}
+
+function stopSpeech() {
+  speechRequestId++;
+  if (activeAudio) {
+    activeAudio.onended = null;
+    activeAudio.onerror = null;
+    activeAudio.pause();
+    activeAudio.currentTime = 0;
+    activeAudio = null;
+  }
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
-  const btn = document.getElementById('ttsBtn');
-  if (btn) {
-    btn.classList.remove('speaking');
-    document.getElementById('ttsBtnText').textContent = 'Escuchar';
+  const nativeTTS = window.Capacitor?.Plugins?.TextToSpeech;
+  if (nativeTTS && typeof nativeTTS.stop === 'function') {
+    nativeTTS.stop().catch((error) => {
+      console.error('No se pudo detener la lectura en voz alta nativa:', error);
+    });
   }
+  finishSpeech();
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopSpeech();
+});
+window.addEventListener('pagehide', stopSpeech);
